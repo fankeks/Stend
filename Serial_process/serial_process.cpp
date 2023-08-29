@@ -1,6 +1,6 @@
 #include "serial_process.h"
 
-std::string generate_dir(std::string path)
+std::string generate_dir_arduino(std::string path)
 {
 	path = path + "arduino";
 	_mkdir(path.c_str());
@@ -180,7 +180,7 @@ namespace sp
 	int serial_process(double time, double fps, bool &event, std::string path)
 	{
 		//Создание необходимых переменных
-		path = generate_dir(path);
+		path = generate_dir_arduino(path);
 		std::ofstream FPG1;
 		FPG1.open(path + "FPG1.txt");
 		std::ofstream FPG2;
@@ -212,6 +212,7 @@ namespace sp
 		std::string message = std::to_string(f);
 		arduino.write(message);
 		event = true;
+		std::cout << "Старт регистрации" << std::endl;
 
 		//Регистрация данных
 		for (long i = 0; i < num; i++)
@@ -230,6 +231,7 @@ namespace sp
 		FPG2.close();
 		ECG.close();
 		Numbers.close();
+		std::cout << "Arduino ready" << std::endl;
 		return 0;
 	}
 }

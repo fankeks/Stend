@@ -5,6 +5,7 @@
 #include <string>
 #include <Windows.h>
 #include "../Video_process/video_process_webcam.h"
+#include "../Serial_process/serial_process.h"
 
 using namespace std;
 
@@ -117,14 +118,19 @@ int main(int args, char* argv[])
 	cin >> fps;
 	cout << endl;
 
+	ofstream param;
+	param.open(path + "Parametrs.txt");
+	param << "time: " << time << "\n";
+	param << "fps: " << fps << "\n";
+	param.close();
+
 	//Запуск процессов регистрации
 	bool event = false;
 	std::thread webcam(vpw::video_process, time, fps, ref(event), path);
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-	event = true;
+	std::thread arduino(sp::serial_process, time, fps, ref(event), path);
 
 	webcam.join();
+	arduino.join();
 	system("pause");
 	return 0;
 }

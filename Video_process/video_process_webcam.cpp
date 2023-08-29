@@ -4,7 +4,7 @@ namespace vpw
 {
 	std::mutex mx;
 
-	std::string generate_dir(std::string path)
+	std::string generate_dir_webcam(std::string path)
 	{
 		path = path + "webcam";
 		_mkdir(path.c_str());
@@ -29,7 +29,7 @@ namespace vpw
 		_mkdir(path_img.c_str());
 
 		//Начало регистрации
-		std::cout << "Начало сохранения" << std::endl;
+		//std::cout << "Начало сохранения" << std::endl;
 		while (1)
 		{
 			//Если в буфере достаточно эллементов, то сохранить элементы
@@ -73,7 +73,7 @@ namespace vpw
 		}
 
 		file.close();
-		std::cout << "Сохранение завершено" << std::endl;
+		//std::cout << "Сохранение завершено" << std::endl;
 		return 0;
 	}
 
@@ -89,7 +89,7 @@ namespace vpw
 		clock_t end;
 
 		//Создание папки для сохранения
-		path = generate_dir(path);
+		path = generate_dir_webcam(path);
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		//Создание и запуск потока сохранения
@@ -104,7 +104,7 @@ namespace vpw
 		while (!event);
 
 		//Регистрация данных
-		std::cout << "Старт регистрации" << std::endl;
+		//std::cout << "Старт регистрации" << std::endl;
 		begin = clock();
 		for (long i = 0; i < n; i++)
 		{
@@ -113,14 +113,15 @@ namespace vpw
 			buffer_num.push_back(i);
 		}
 		end = clock();
-		std::cout << "Регистрация завершена" << std::endl;
+		//std::cout << "Регистрация завершена" << std::endl;
 		double time_spent = ((double)(end - begin) / CLOCKS_PER_SEC);
-		std::cout << "Время регистрации: " << time_spent << std::endl;
+		//std::cout << "Время регистрации: " << time_spent << std::endl;
 
 		//Завершение программы
 		cap.release();
 		f = false;
 		saving.join();
+		std::cout << "Webcam ready" << std::endl;
 		return 0;
 	}
 }
