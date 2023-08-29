@@ -1,12 +1,14 @@
 #include "serial_process.h"
 
+std::string generate_dir(std::string path)
+{
+	path = path + "arduino";
+	_mkdir(path.c_str());
+	return path + char(92);
+}
+
 namespace sp
 {
-	Serial::Serial()
-	{
-
-	}
-
 	int Serial::open(int baud, std::string comport)
 	{
 		//Открытие порта
@@ -132,11 +134,102 @@ namespace sp
 
 	Serial::~Serial()
 	{
-
+		CloseHandle(connectedPort);
 	}
 
-	int serial_process(double time, double fps, std::string path)
+	std::string choose_port()
 	{
+		Serial connect;
+		std::list<std::string> ports;
+		std::string port;
+		for (int i = 0; i < 50; i++)
+		{
+			port = "COM" + std::to_string(i);
+			if (connect.open(115200, port) == 0)
+			{
+				ports.push_back(port);
+			}
+			connect.close();
+		}
+		if (ports.size() > 1)
+		{
+			int n = 0;
+			for (auto i = ports.begin(); i != ports.end(); i++)
+			{
+				n++;
+				std::cout << "Выберите порт" << std::endl;
+				std::cout << *i << " -- " << n << std::endl;
+			}
+			std::cin >> n;
+			for (int i = 0; i < n; i++)
+			{
+				port = *ports.begin();
+				ports.pop_front();
+			}
+		}
+
+		if (ports.size() == 1)
+		{
+			return *ports.begin();
+		}
+
+		std::cout << "Нет подключенных устройств" << std::endl;
+		return "";
+	}
+
+	int serial_process(double time, double fps, bool &event, std::string path)
+	{
+		//Создание необходимых переменных
+		path = generate_dir(path);
+		std::ofstream FPG1;
+		FPG1.open(path + "FPG1.txt");
+		std::ofstream FPG2;
+		FPG2.open(path + "FPG2.txt");
+		std::ofstream ECG;
+		ECG.open(path + "ECG.txt");
+		std::ofstream Numbers;
+		Numbers.open(path + "Numbers.txt");
+		long num = (long)(fps * time);
+		
+		//Выбираем порт
+		std::string port = choose_port();
+		if (port == "")
+		{
+			return -5; //Устройство не подключено
+		}
+		
+		//Подключаемся по выбраному порту
+		Serial arduino;
+		int f = arduino.open(115200, port);
+		if (f != 0)
+		{
+			return f; //Неполадки с подключением
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+		
+		//Отправляем fps на arduino
+		f = (int)fps;
+		std::string message = std::to_string(f);
+		arduino.write(message);
+		event = true;
+
+		//Регистрация данных
+		for (long i = 0; i < num; i++)
+		{
+			arduino.read(message);
+			FPG1 << message << "\n";
+			arduino.read(message);
+			FPG2 << message << "\n";
+			arduino.read(message);
+			ECG << message << "\n";
+			Numbers << i << "\n";
+		}
+
+		//Закрытие файлов
+		FPG1.close();
+		FPG2.close();
+		ECG.close();
+		Numbers.close();
 		return 0;
 	}
 }

@@ -2,6 +2,10 @@
 #include <iostream>
 #include <string>
 #include <Windows.h>
+#include <list>
+#include <thread>
+#include <direct.h>
+#include <fstream>
 
 namespace sp
 {
@@ -15,8 +19,6 @@ namespace sp
 	public:
 		bool isConnect = false;
 
-		Serial();
-
 		int open(int baud, std::string comport);
 
 		int read(std::string &message);
@@ -28,5 +30,7 @@ namespace sp
 		~Serial();
 	};
 
-	int serial_process(double time, double fps, std::string path);
+	std::string choose_port();
+
+	int serial_process(double time, double fps, bool &event, std::string path);
 }
