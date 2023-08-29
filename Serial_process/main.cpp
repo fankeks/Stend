@@ -1,5 +1,6 @@
 #include "serial_process.h"
 #include <iostream>
+#include <thread>
 
 using namespace std;
 
@@ -29,15 +30,16 @@ int main(int args, char* argv[])
 	sp::Serial arduino;
 	int f = arduino.open(115200, "COM3");
 	printconnect(f);
-	string s;
-	//cout << (int)'\r' << endl;
-	
-	while (1)
+	std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+	string message = "30";
+	if (arduino.write(message) == 0)
 	{
-		arduino.read(s);
-		cout << s << endl;
+		cout << "Сообщение отправлено" << endl;
 	}
-	
+
+	string s;
+	arduino.read(s);
+	cout << s;
 	arduino.close();
 	system("pause");
 	return 0;

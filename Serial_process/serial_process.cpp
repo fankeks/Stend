@@ -103,8 +103,24 @@ namespace sp
 		return 0;
 	}
 
-	int Serial::write()
+	int Serial::write(std::string message)
 	{
+		if (!isConnect)
+		{
+			return -2; //Порт не подключен
+		}
+		
+		//Преобразование строки в массив char
+		int length = message.length();
+		const char* mes = message.c_str();
+
+		//Передача сообщения
+		DWORD dwSize = length;
+		DWORD BytesIterated;
+		if (!WriteFile(connectedPort, mes, dwSize, &BytesIterated, NULL))
+		{
+			return -1; //Сообщение не отправлено
+		}
 		return 0;
 	}
 

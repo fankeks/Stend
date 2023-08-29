@@ -21,7 +21,7 @@ namespace sp
 
 		int read(std::string &message);
 
-		int write();
+		int write(std::string message);
 
 		int close();
 
