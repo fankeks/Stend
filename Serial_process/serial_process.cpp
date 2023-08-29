@@ -53,11 +53,53 @@ namespace sp
 		}
 
 		//Завершение настройки
+		isConnect = true;
 		return 0;
 	}
 
-	int Serial::read()
+	int Serial::read(std::string& message)
 	{
+		//Проверка на подключение порта
+		if (!isConnect)
+		{
+			return -2; //Порт не подключен
+		}
+		if (!SetCommMask(connectedPort, EV_RXCHAR))
+		{
+			return -1; //Символов нет в буфере
+		}
+		
+		//Данные пришли
+		DWORD iSize;
+		char s_now, s_prev;
+		message = "";
+		do
+		{
+			if (ReadFile(connectedPort, &s_now, 1, &iSize, NULL)) //Получаем 1 байт
+			{
+				if (iSize > 0)
+				{
+					if (s_now == '\n')
+					{
+						if (s_prev == '\r')
+						{
+							break;
+						}
+						s_prev = s_now;
+						message += s_now;
+					}
+					else if (s_now == '\r')
+					{
+						s_prev = s_now;
+					}
+					else
+					{
+						s_prev = s_now;
+						message += s_now;
+					}
+				}	
+			}
+		} while (1);
 		return 0;
 	}
 

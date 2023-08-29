@@ -13,11 +13,13 @@ namespace sp
 		COMMTIMEOUTS serialTimeouts;
 
 	public:
+		bool isConnect = false;
+
 		Serial();
 
 		int open(int baud, std::string comport);
 
-		int read();
+		int read(std::string &message);
 
 		int write();
 
