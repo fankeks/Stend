@@ -57,14 +57,22 @@ namespace vpw
 				break;
 			}
 		}
-		while (!buffer_img.empty())
+		while (1)
 		{
 			mx.lock();
-			frame = *buffer_img.begin();
-			buffer_img.pop_front();
-			num = *buffer_num.begin();
-			buffer_num.pop_front();
-			mx.unlock();
+			if (!buffer_img.empty())
+			{
+				frame = *buffer_img.begin();
+				buffer_img.pop_front();
+				num = *buffer_num.begin();
+				buffer_num.pop_front();
+				mx.unlock();
+			}
+			else
+			{
+				mx.unlock();
+				break;
+			}
 			//Сохранение данных
 			i++;
 			name = path_img + std::to_string(i) + ".jpg";

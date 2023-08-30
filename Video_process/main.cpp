@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 	//Инициализация переменных
 	string path = argv[0]; //Путь к файлу
 	double time, fps; //Время и fps
-	bool event = false;
+	bool event = true;
 
 	//Ввод параметров регистрации
 	std::cout << "Введите время регистрации: ";
@@ -44,7 +44,9 @@ int main(int argc, char* argv[])
 	//Создание директории с данными
 	path = generate_dir_data(path);
 	//Запуск процесса регистрации
-	vpw::video_process(time, fps, ref(event), path);
+	vpw::video_process(time, fps, event, path);
+
+	//event = true;
 
 	system("pause");
 	return 0;
