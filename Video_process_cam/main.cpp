@@ -1,15 +1,9 @@
-#include "xiApiPlusOcv.hpp"
-#include <iostream>
-#include <time.h>
-#include <string>
 #include "Video_process_cam.h"
+#include <iostream>
 
-
-using namespace cv;
 using namespace std;
 
-
-std::string generate_dir_data(std::string path)
+string generate_dir_data(string path)
 {
 	string it_s = "";
 	string path1 = "";
@@ -31,63 +25,29 @@ std::string generate_dir_data(std::string path)
 	return path1 + char(92);
 }
 
-
 int main(int argc, char* argv[])
 {
-	try
-	{
-		setlocale(LC_ALL, "ru");
-		string name;
-		//Инициализация переменных
-		string path = argv[0]; //Путь к файлу
-		double time, fps; //Время и fps
-		bool event = true;
+	setlocale(LC_ALL, "ru");
 
-		//Ввод параметров регистрации
-		std::cout << "Введите время регистрации: ";
-		cin >> time;
-		std::cout << endl << "Введите fps: ";
-		cin >> fps;
-		std::cout << endl;
+	//Инициализация переменных
+	string path = argv[0]; //Путь к файлу
+	double time, fps; //Время и fps
+	bool event = true;
 
-		//Создание директории с данными
-		path = generate_dir_data(path);
+	//Ввод параметров регистрации
+	std::cout << "Введите время регистрации: ";
+	cin >> time;
+	std::cout << endl << "Введите fps: ";
+	cin >> fps;
+	std::cout << endl;
 
-		long EXPECTED_IMAGES = 200 * 10;
+	//Создание директории с данными
+	path = generate_dir_data(path);
+	//Запуск процесса регистрации
+	vpc::video_process(time, fps, event, path);
 
-		xiAPIplusCameraOcv cam;
-		cout << "Opening first camera..." << endl;
-		cam.OpenFirst();
-		int ex = 1000000 / fps;
-		cam.SetExposureTime(ex); //10000 us = 10 ms
-		cam.SetImageDataFormat(XI_RGB24);
+	//event = true;
 
-		cout << "Starting acquisition..." << endl;
-		cam.StartAcquisition();
-		//Sleep(3);
-
-		clock_t tStart = clock();
-		for (int images = 0; images < EXPECTED_IMAGES; images++)
-		{
-			Mat cv_mat_image = cam.GetNextImageOcvMat();
-			name = path + std::to_string(images) + ".bmp";
-			imwrite(name, cv_mat_image);
-		}
-		clock_t tEnd = clock();
-		printf("Time taken: %.2fs\n", (double)(tEnd - tStart) / CLOCKS_PER_SEC);
-
-
-		cam.StopAcquisition();
-		cam.Close();
-		cout << "Done" << endl;
-		waitKey(0);
-	}
-	catch (xiAPIplus_Exception& exp)
-	{
-		cout << "Error:" << endl;
-		exp.PrintError();
-		Sleep(3000);
-		return -1;
-	}
+	system("pause");
 	return 0;
 }

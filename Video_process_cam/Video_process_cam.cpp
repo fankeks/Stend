@@ -1,4 +1,5 @@
 #include "Video_process_cam.h"
+#include "xiApiPlusOcv.hpp"
 
 namespace vpc
 {
@@ -6,7 +7,7 @@ namespace vpc
 
 	std::string generate_dir_cam(std::string path)
 	{
-		path = path + "cam";
+		path = path + "Cam";
 		_mkdir(path.c_str());
 		return path + char(92);
 	}
@@ -44,7 +45,7 @@ namespace vpc
 				mx.unlock();
 				//Сохранение данных
 				i++;
-				name = path_img + std::to_string(i) + ".jpg";
+				name = path_img + std::to_string(i) + ".bmp";
 				cv::imwrite(name, frame);
 				file << num << "\n";
 				//Продолжение сохранения
@@ -87,49 +88,76 @@ namespace vpc
 
 	int video_process(double time, double fps, bool& event, std::string path)
 	{
-		cv::Mat frame; //Объект картинки
-		cv::VideoCapture cap(0); //Объект камеры
-		std::list<cv::Mat> buffer_img; //Буфер сохранения картинок
-		std::list<long> buffer_num; //Буфер сохранения номера
-		bool f = true; //Флаг сохранения (True запись идёт, False запись прекращена)
-		long n = (long)(time * fps); //Колличество кадров
-		clock_t begin;
-		clock_t end;
+		try 
+		{
+			xiAPIplusCameraOcv cam;
+			//std::cout << "Opening first camera..." << std::endl;
+			cam.OpenFirst();
+			long ex = 1000000 / fps;
+			cam.SetExposureTime(ex); //10000 us = 10 ms
+			cam.SetImageDataFormat(XI_RGB24);
 
-		//Создание папки для сохранения
-		path = generate_dir_cam(path);
+			/*
+			cv::Mat frame; //Объект картинки
+			cv::VideoCapture cap(0); //Объект камеры
+			*/
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		//Создание и запуск потока сохранения
-		std::thread saving(save_data, std::ref(buffer_img), std::ref(buffer_num), std::ref(f), path);
+			cv::Mat frame;
+			std::list<cv::Mat> buffer_img; //Буфер сохранения картинок
+			std::list<long> buffer_num; //Буфер сохранения номера
+			bool f = true; //Флаг сохранения (True запись идёт, False запись прекращена)
+			long n = (long)(time * fps); //Колличество кадров
+			clock_t begin;
+			clock_t end;
 
-		//Включение камеры
-		if (!cap.isOpened()) {
-			std::cout << "Камера не включена" << std::endl;
+			//Создание папки для сохранения
+			path = generate_dir_cam(path);
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			//Создание и запуск потока сохранения
+			std::thread saving(save_data, std::ref(buffer_img), std::ref(buffer_num), std::ref(f), path);
+
+			/*
+			//Включение камеры
+			if (!cap.isOpened()) {
+				std::cout << "Камера не включена" << std::endl;
+				return -1;
+			}
+			*/
+			while (!event);
+
+			//Регистрация данных
+			//std::cout << "Старт регистрации" << std::endl;
+
+			//cout << "Starting acquisition..." << endl;
+			cam.StartAcquisition();
+
+			begin = clock();
+			for (long i = 0; i < n; i++)
+			{
+				frame = cam.GetNextImageOcvMat();
+				buffer_img.push_back(frame);
+				buffer_num.push_back(i);
+			}
+			end = clock();
+			//std::cout << "Регистрация завершена" << std::endl;
+			double time_spent = ((double)(end - begin) / CLOCKS_PER_SEC);
+			//std::cout << "Время регистрации: " << time_spent << std::endl;
+
+			//Завершение программы
+			cam.StopAcquisition();
+			cam.Close();
+			f = false;
+			saving.join();
+			std::cout << "Webcam ready" << std::endl;
+		}
+		catch (xiAPIplus_Exception& exp)
+		{
+			std::cout << "Error:" << std::endl;
+			exp.PrintError();
+			Sleep(3000);
 			return -1;
 		}
-
-		while (!event);
-
-		//Регистрация данных
-		//std::cout << "Старт регистрации" << std::endl;
-		begin = clock();
-		for (long i = 0; i < n; i++)
-		{
-			cap >> frame;
-			buffer_img.push_back(frame);
-			buffer_num.push_back(i);
-		}
-		end = clock();
-		//std::cout << "Регистрация завершена" << std::endl;
-		double time_spent = ((double)(end - begin) / CLOCKS_PER_SEC);
-		//std::cout << "Время регистрации: " << time_spent << std::endl;
-
-		//Завершение программы
-		cap.release();
-		f = false;
-		saving.join();
-		std::cout << "Webcam ready" << std::endl;
 		return 0;
 	}
 	
