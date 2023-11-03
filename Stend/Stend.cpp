@@ -6,6 +6,8 @@
 #include <Windows.h>
 #include "../Video_process/video_process_webcam.h"
 #include "../Serial_process/serial_process.h"
+#include "../Video_process_cam/video_process_cam.h"
+
 
 using namespace std;
 
@@ -127,10 +129,12 @@ int main(int args, char* argv[])
 	//Запуск процессов регистрации
 	bool event = false;
 	std::thread webcam(vpw::video_process, time, fps, ref(event), path);
+	std::thread cam(vpc::video_process, time, fps, ref(event), path);
 	std::thread arduino(sp::serial_process, time, fps, ref(event), path);
 
 	webcam.join();
 	arduino.join();
+	cam.join();
 	system("pause");
 	return 0;
 }

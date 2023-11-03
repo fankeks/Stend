@@ -1,4 +1,4 @@
-#include "Video_process_cam.h"
+п»ї#include "Video_process_cam.h"
 #include "xiApiPlusOcv.hpp"
 
 namespace vpc
@@ -11,84 +11,40 @@ namespace vpc
 		_mkdir(path.c_str());
 		return path + char(92);
 	}
-	
-	int save_data(std::list<cv::Mat>& buffer_img, std::list<long>& buffer_num, bool& f, std::string path)
+
+	int save_data(xiAPIplusCameraOcv& cam, long& buffer_num, long& buffer_counter, std::string path)
 	{
+		cv::Mat frame;
 		std::string name;
 		long i = 0;
-		cv::Mat frame;
 		long num;
 		std::string path_img;
-		std::string path_num;
-		std::ofstream file;
 
-		//Создание необходимых файлов
-		path_num = path + "Number.txt";
-		file.open(path_num);
 		path_img = path + "Pictures" + char(92);
 		//std::cout << path << endl;
 		_mkdir(path_img.c_str());
 
-		//Начало регистрации
-		//std::cout << "Начало сохранения" << std::endl;
-		while (1)
-		{
-			//Если в буфере достаточно эллементов, то сохранить элементы
-			if (buffer_img.size() > 3)
-			{
-				//Получение 1-ого элемента очереди
-				mx.lock();
-				frame = *buffer_img.begin();
-				buffer_img.pop_front();
-				num = *buffer_num.begin();
-				buffer_num.pop_front();
-				mx.unlock();
-				//Сохранение данных
-				i++;
-				name = path_img + std::to_string(i) + ".bmp";
-				cv::imwrite(name, frame);
-				file << num << "\n";
-				//Продолжение сохранения
-				continue;
-			}
-			//cout << "Ожидание кадров" << endl;
-			//Проверка на завершение регистрации
-			if (f == false)
-			{
-				break;
-			}
-		}
-		while (1)
+		//РќР°С‡Р°Р»Рѕ СЂРµРіРёСЃС‚СЂР°С†РёРё
+		//std::cout << "РќР°С‡Р°Р»Рѕ СЃРѕС…СЂР°РЅРµРЅРёСЏ" << std::endl;
+		while(buffer_counter < buffer_num)
 		{
 			mx.lock();
-			if (!buffer_img.empty())
-			{
-				frame = *buffer_img.begin();
-				buffer_img.pop_front();
-				num = *buffer_num.begin();
-				buffer_num.pop_front();
-				mx.unlock();
-			}
-			else
-			{
-				mx.unlock();
-				break;
-			}
-			//Сохранение данных
-			i++;
-			name = path_img + std::to_string(i) + ".jpg";
-			cv::imwrite(name, frame);
-			file << num << "\n";
-		}
+			frame = cam.GetNextImageOcvMat();
+			name = path_img + std::to_string(buffer_counter) + ".bmp";
+			buffer_counter++;
+			mx.unlock();
+			//РЎРѕС…СЂР°РЅРµРЅРёРµ РґР°РЅРЅС‹С…
 
-		file.close();
-		//std::cout << "Сохранение завершено" << std::endl;
+			cv::imwrite(name, frame);
+			frame.release();
+			//РџСЂРѕРґРѕР»Р¶РµРЅРёРµ СЃРѕС…СЂР°РЅРµРЅРёСЏ
+		}
 		return 0;
 	}
 
 	int video_process(double time, double fps, bool& event, std::string path)
 	{
-		try 
+		try
 		{
 			xiAPIplusCameraOcv cam;
 			//std::cout << "Opening first camera..." << std::endl;
@@ -96,60 +52,66 @@ namespace vpc
 			long ex = 1000000 / fps;
 			cam.SetExposureTime(ex); //10000 us = 10 ms
 			cam.SetImageDataFormat(XI_RGB24);
+			cam.SetAcquisitionBufferSizeBytes(cam.GetAcquisitionBufferSizeBytesUnit_Maximum());
+			cam.SetAcquisitionBufferSizeBytesUnit(cam.GetAcquisitionBufferSizeBytesUnit_Maximum());
+			cam.SetAcquisitionQueueImagesCount(cam.GetAcquisitionQueueImagesCount_Maximum());
 
 			/*
-			cv::Mat frame; //Объект картинки
-			cv::VideoCapture cap(0); //Объект камеры
+			cv::Mat frame; //ГЋГЎГєГҐГЄГІ ГЄГ Г°ГІГЁГ­ГЄГЁ
+			cv::VideoCapture cap(0); //ГЋГЎГєГҐГЄГІ ГЄГ Г¬ГҐГ°Г»
 			*/
-
+			std::string name;
+			std::string path_img;
 			cv::Mat frame;
-			std::list<cv::Mat> buffer_img; //Буфер сохранения картинок
-			std::list<long> buffer_num; //Буфер сохранения номера
-			bool f = true; //Флаг сохранения (True запись идёт, False запись прекращена)
-			long n = (long)(time * fps); //Колличество кадров
+			long n = (long)(time * fps); //ГЉГ®Г«Г«ГЁГ·ГҐГ±ГІГўГ® ГЄГ Г¤Г°Г®Гў
+			long buffer_counter = 0;
 			clock_t begin;
 			clock_t end;
 
-			//Создание папки для сохранения
+			//Г‘Г®Г§Г¤Г Г­ГЁГҐ ГЇГ ГЇГЄГЁ Г¤Г«Гї Г±Г®ГµГ°Г Г­ГҐГ­ГЁГї
 			path = generate_dir_cam(path);
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-			//Создание и запуск потока сохранения
-			std::thread saving(save_data, std::ref(buffer_img), std::ref(buffer_num), std::ref(f), path);
+			path_img = path + "Pictures" + char(92);
+			std::ofstream file;
 
-			/*
-			//Включение камеры
-			if (!cap.isOpened()) {
-				std::cout << "Камера не включена" << std::endl;
-				return -1;
-			}
-			*/
+			//РЎРѕР·РґР°РЅРёРµ РЅРµРѕР±С…РѕРґРёРјС‹С… С„Р°Р№Р»РѕРІ
+			std::string path_num = path + "Info.txt";
+			file.open(path_num);
+			file <<"Р’СЂРµРјСЏ: " << time << "\n";
+			file << "fps: " << fps << "\n";
+			file.close();
+			//std::cout << path << endl;
+			_mkdir(path_img.c_str());
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			//Г‘Г®Г§Г¤Г Г­ГЁГҐ ГЁ Г§Г ГЇГіГ±ГЄ ГЇГ®ГІГ®ГЄГ  Г±Г®ГµГ°Г Г­ГҐГ­ГЁГї
+
+			
 			while (!event);
 
-			//Регистрация данных
-			//std::cout << "Старт регистрации" << std::endl;
+			//ГђГҐГЈГЁГ±ГІГ°Г Г¶ГЁГї Г¤Г Г­Г­Г»Гµ
+			//std::cout << "Г‘ГІГ Г°ГІ Г°ГҐГЈГЁГ±ГІГ°Г Г¶ГЁГЁ" << std::endl;
 
 			//cout << "Starting acquisition..." << endl;
+			begin = clock();
 			cam.StartAcquisition();
 
-			begin = clock();
-			for (long i = 0; i < n; i++)
-			{
-				frame = cam.GetNextImageOcvMat();
-				buffer_img.push_back(frame);
-				buffer_num.push_back(i);
-			}
-			end = clock();
-			//std::cout << "Регистрация завершена" << std::endl;
-			double time_spent = ((double)(end - begin) / CLOCKS_PER_SEC);
-			//std::cout << "Время регистрации: " << time_spent << std::endl;
+			//РЎРѕР·РґР°РЅРёРµ Рё Р·Р°РїСѓСЃРє РїРѕС‚РѕРєР° СЃРѕС…СЂР°РЅРµРЅРёСЏ
+			std::thread saving1(save_data, std::ref(cam), std::ref(n), std::ref(buffer_counter), path);
+			//std::thread saving2(save_data, std::ref(cam), std::ref(n), std::ref(buffer_counter), std::ref(f), path);
+			save_data(cam, n, buffer_counter, path);
 
-			//Завершение программы
+			
+			//Г‡Г ГўГҐГ°ГёГҐГ­ГЁГҐ ГЇГ°Г®ГЈГ°Г Г¬Г¬Г»
+			saving1.join();
+			//saving2.join();
 			cam.StopAcquisition();
+			end = clock();
+			//std::cout << "Р РµРіРёСЃС‚СЂР°С†РёСЏ Р·Р°РІРµСЂС€РµРЅР°" << std::endl;
+			double time_spent = ((double)(end - begin) / CLOCKS_PER_SEC);
+			//std::cout << "Р’СЂРµРјСЏ СЂРµРіРёСЃС‚СЂР°С†РёРё: " << time_spent << std::endl;
 			cam.Close();
-			f = false;
-			saving.join();
-			std::cout << "Webcam ready" << std::endl;
+			std::cout << "Cam ready" << std::endl;
 		}
 		catch (xiAPIplus_Exception& exp)
 		{
@@ -160,5 +122,5 @@ namespace vpc
 		}
 		return 0;
 	}
-	
+
 }
