@@ -1,5 +1,6 @@
 #include <iostream>
 #include "video_process_webcam.h"
+#include <chrono>
 
 using namespace std;
 
@@ -51,3 +52,28 @@ int main(int argc, char* argv[])
 	system("pause");
 	return 0;
 }
+
+//int main(int argc, char* argv[])
+//{
+//	setlocale(LC_ALL, "ru");
+//
+//	cv::Mat img = cv::Mat(1080, 1920, CV_8UC3);
+//	uchar* data;
+//	data = new(uchar[1920 * 1080 * 3]);
+//	for (int i = 0; i < 1920 * 1080 * 3; i++)
+//	{
+//		data[i] = 255;
+//	}
+//	img.data = data;
+//	cv::imshow("img", img);
+//	cv::waitKey(0);
+//
+//	auto start_time = std::chrono::steady_clock::now();
+//	cv::imwrite("1.bmp", img);
+//	auto end_time = std::chrono::steady_clock::now();
+//	auto elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
+//	std::cout << elapsed_ns.count() << " ns\n";
+//	delete[] data;
+//	system("pause");
+//	return 0;
+//}

@@ -16,6 +16,9 @@
 #include "xiApiPlusOcv.hpp"
 
 
+#define CE(func) {XI_RETURN stat = (func); if (XI_OK!=stat) {printf("Error:%d returned from function:"#func"\n",stat);throw "Error";}}
+
+
 namespace vpc
 {
 	int video_process(double time, double fps, bool& event, std::string path);

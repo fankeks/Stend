@@ -15,7 +15,6 @@ namespace vpw
 	{
 		std::string name;
 		long i = 0;
-		cv::Mat frame;
 		long num;
 		std::string path_img;
 		std::string path_num;
@@ -37,6 +36,7 @@ namespace vpw
 			{
 				//Получение 1-ого элемента очереди
 				mx.lock();
+				cv::Mat frame;
 				frame = *buffer_img.begin();
 				buffer_img.pop_front();
 				num = *buffer_num.begin();
@@ -62,22 +62,23 @@ namespace vpw
 			mx.lock();
 			if (!buffer_img.empty())
 			{
+				cv::Mat frame;
 				frame = *buffer_img.begin();
 				buffer_img.pop_front();
 				num = *buffer_num.begin();
 				buffer_num.pop_front();
 				mx.unlock();
+				//Сохранение данных
+				i++;
+				name = path_img + std::to_string(i) + ".jpg";
+				cv::imwrite(name, frame);
+				file << num << "\n";
 			}
 			else
 			{
 				mx.unlock();
 				break;
 			}
-			//Сохранение данных
-			i++;
-			name = path_img + std::to_string(i) + ".jpg";
-			cv::imwrite(name, frame);
-			file << num << "\n";
 		}
 
 		file.close();
@@ -101,13 +102,14 @@ namespace vpw
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		//Создание и запуск потока сохранения
-		std::thread saving(save_data, std::ref(buffer_img), std::ref(buffer_num), std::ref(f), path);
 
 		//Включение камеры
 		if (!cap.isOpened()) {
 			std::cout << "Камера не включена" << std::endl;
 			return -1;
 		}
+
+		std::thread saving(save_data, std::ref(buffer_img), std::ref(buffer_num), std::ref(f), path);
 
 		while (!event);
 
@@ -119,11 +121,12 @@ namespace vpw
 			cap >> frame;
 			buffer_img.push_back(frame);
 			buffer_num.push_back(i);
+			frame.release();
 		}
 		end = clock();
 		//std::cout << "Регистрация завершена" << std::endl;
 		double time_spent = ((double)(end - begin) / CLOCKS_PER_SEC);
-		//std::cout << "Время регистрации: " << time_spent << std::endl;
+		std::cout << "Время регистрации: " << time_spent << std::endl;
 
 		//Завершение программы
 		cap.release();
